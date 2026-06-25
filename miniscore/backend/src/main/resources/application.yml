@@ -1,0 +1,18 @@
+spring:
+ datasource:
+   url: jdbc:postgresql://localhost:5432/miniscore
+   username: miniscore_user
+   password: miniscore_pass
+ jpa:
+   hibernate:
+     ddl-auto: update      # İlk çalıştırmada tabloları otomatik oluşturur
+   show-sql: true          # SQL sorgularını konsolda gösterir (geliştirme amaçlı)
+   properties:
+     hibernate.format_sql: true
+ 
+jwt:
+ secret: gizli-anahtar-en-az-256-bit-uzunlugunda-olmalidir
+ expiration: 86400000      # 24 saat (milisaniye cinsinden)
+ 
+server:
+ port: 8080
