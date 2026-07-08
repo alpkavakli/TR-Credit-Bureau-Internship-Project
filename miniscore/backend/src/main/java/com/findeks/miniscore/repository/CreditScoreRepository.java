@@ -1,12 +1,11 @@
 package com.findeks.miniscore.repository;
 
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.findeks.miniscore.entity.CreditScore;
-import com.findeks.miniscore.entity.User;
 
-public interface CreditScoreRepository extends JpaRepository<User, Long>{
-
-    public void save(CreditScore build);
-    
+public interface CreditScoreRepository extends JpaRepository<CreditScore, Long>{
+    List<CreditScore> findByUserEmail(String email);
 }

@@ -1,5 +1,8 @@
 package com.findeks.miniscore.service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.springframework.stereotype.Service;
 
 import com.findeks.miniscore.dto.CreditScoreResponse;
@@ -51,4 +54,16 @@ public class CreditScoreService {
        if (score >= 900)  return "ORTA_RISK";
        return "YUKSEK_RISK";
    }
+
+   public List<CreditScoreResponse> getHistory(String email) { //username = email sistemde
+    User user = userRepository.findByEmail(email).orElseThrow();
+    return creditScoreRepository.findByUserEmail(email).stream()
+        .map(cs -> new CreditScoreResponse(
+            cs.getScore(),
+            cs.getRiskCategory(),
+            user.getFirstName(),
+            user.getLastName())).collect(Collectors.toList(
+        ));
+   }
 }
+
