@@ -133,6 +133,10 @@ But if we used Spring Boot we could just include dependencies, put some conf in 
 
 Spring Boot uses sensible defaults to do this.
 
+
+
+
+
 ## Dependency Injection, Inversion of Control
 
 Instead of defining concrete classes of dependencies inside classes, we define interfaces, and we don't send the concrete classes ourselves.
@@ -152,33 +156,260 @@ The objects created and managed by Spring are called **beans**.
 
 Then, when a class needs a dependency, Spring looks for a suitable bean and injects it automatically.
 
-#### *@Configuration* 
+#### **@Configuration** 
 It is used when the class is going to have bean declarations.
-#### *@Bean*
+#### **@Bean**
 It is used inside a Config class, just before the declaration of a Bean.
 
 To declare a bean, you can annotate a method with the @Bean annotation. You use this method to register a bean definition within an ApplicationContext of the type specified by the method’s return type. By default, the bean name is the same as the method name (unless a different bean name generator is configured).
 
 ### Componentsta kaldık 49:39
+
+### Components (and friends) to declare beans
+When we put **@Component** before a class, it tells the Spring that, the class is a bean and its dependencies must be handled by Spring. 
+
+**@Component** annotation says that, Spring create an object from this class, keep it in itselves container as a bean. If needed insert it to somewhere.
+
+The component annotation on top of the implementing class works in pretty much the same way as doing *@Bean* declaration inside a configuration class.  
+
+Example Code:
+#### With **@Bean** (and @Conf)
+
+```java
+@Configuration
+public class AppConfig {
+
+    @Bean
+    public RedPrinter redPrinter() {
+        return new RedPrinter();
+    }
+}
+```
+
+It tells to Spring "Save this RedPrinter object as a Bean" 
+You need a conf class to declare beans on @Bean methods. 
+#### With **@Component**
+
+```java
+@Component
+public class RedPrinter implements ColorPrinter {
+    
+}
+```
+Spring, finds this class during component scan and saves it as a bean.  
+Extra: But we didn't use @ComponentScan, why is that?  
+Well **@SpringBootApplication** also harbours (barındırmak) **@ComponentScan**   
+Which scans main classes package and its lower classes  
+
+AI Summary:
+@Component marks a class as a Spring-managed component. During component scanning, Spring detects this class, creates an object from it, keeps it inside the Spring container as a bean, and injects it into other classes when needed.
+
+In Spring Boot, we usually do not need to write @ComponentScan manually because @SpringBootApplication already includes it.
+
+#### Friends of @Component
+**@Service** or other friends of **@Component** are components that are more descriptive.
+
+
+### Component Scanning
+
+Component scanning is searching for beans and inserting those beans to the correct places.  
+
+#### How does Spring know inserting correct beans to correct place
+
+Spring looks at what data type the constructor/field needs.  
+Then it searches the container for a bean of that data type.  
+
+We usually use Interfaces as Constructor parameters, and we have a component bean that implements that Interface. 
+Spring inserts that component as a constructor parameter.
+
+### **@SpringBootApplication** Annotation
+
+It consists of many other annotations like **@ComponentScan** we mentioned.
+@Target(ElementType.TYPE)  
+@Retention(RetentionPolicy.RUNTIME)   
+@Documented  
+@Inherited  
+@SpringBootConfiguration  
+@EnableAutoConfiguration  
+
+### What is AutoConfiguration
+
+Spring Boot looks at your project and automatically configures many things for you, based on what dependencies and classes it sees.  
+
+If you re-configure autoconfigured configurations, Spring Boot backs off.  
+Autoconfiguration is enabled in @SpringBootApplication, as it contains @EnableAutoConfiguration.
+
+
+
+
+## Configuration
+[Click to visit Conf Application Properties Page ](https://docs.spring.io/spring-boot/appendix/application-properties/index.html)
+
+If we want to configure something, for example the port number, we visit this site and find the property we are trying to change.
+We found
+server.port=8181
+
+
+
+
+
+## Database Basics
+
+Database Driver is what you need to interact with specific database,
+JDBC is how you connect to database and query with SQL
+JPA is how you would query it with java objects.
+
+
+### ORM (Object-Relational Mapping)
+
+ORM is a technique that maps Java objects to database tables, so you work with objects instead of writing raw SQL.
+
+Instead of writing:
+```sql
+SELECT * FROM users WHERE id = 1;
+```
+
+You write:
+```java
+User user = userRepository.findById(1L);
+```
+
+The ORM tool translates your objects into SQL behind the scenes.
+
+
+### Hibernate
+
+Hibernate is the most common ORM implementation used in Java. It's the library that actually does the object-to-table mapping work.
+
+```java
+@Entity
+public class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private String name;
+}
+```
+
+**@Entity** tells Hibernate "this class maps to a table."  
+**@Id** marks the primary key field.  
+**@GeneratedValue** tells the database to auto-generate the id (like AUTO_INCREMENT).
+
+AI Summary:
+Hibernate is a concrete ORM framework. JPA is the specification (the rules/interfaces); Hibernate is one implementation of that specification, similar to how an interface and its implementing class relate.
+
+
+### JPA and Spring Data JPA
+
+**JPA (Jakarta Persistence API)** is a specification, not a real implementation. It defines interfaces like `EntityManager` for persistence, but Hibernate does the actual work underneath.
+
+**Spring Data JPA** is a further abstraction on top of JPA. It lets you skip writing most implementation code entirely by just declaring an interface.
+
+```java
+public interface UserRepository extends JpaRepository {
+    Optional findByEmail(String email);
+}
+```
+
+You don't implement this interface. Spring Data JPA generates the implementation at runtime based on the method name (`findByEmail` → `SELECT * FROM users WHERE email = ?`).
+
+AI Summary:
+JPA = specification (rules). Hibernate = implementation of those rules. Spring Data JPA = a layer on top that auto-generates repository implementations from interface method names, so you barely write any query code yourself.
+
+### Spring JDBC
+
+Spring JDBC is a lower-level, more manual way of talking to the database compared to JPA. You write your own SQL, but Spring handles connection management, exception handling, and boilerplate for you.
+
+```java
+@Repository
+public class UserJdbcDao {
+
+    private final JdbcTemplate jdbcTemplate;
+
+    public UserJdbcDao(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
+
+    public User findById(Long id) {
+        String sql = "SELECT * FROM users WHERE id = ?";
+        return jdbcTemplate.queryForObject(sql, new BeanPropertyRowMapper<>(User.class), id);
+    }
+}
+```
+
+`JdbcTemplate` is the core class; it removes the need for manual `Connection`, `Statement`, and `ResultSet` handling that plain JDBC requires.
+
+AI Summary:
+Spring JDBC gives you control by letting you write SQL directly, while Spring handles the repetitive setup/teardown code. It sits below JPA in abstraction level — more control, more manual work.
+
+### H2 Database
+
+H2 is a lightweight, in-memory (or file-based) database written in Java. It's commonly used for testing and local development because it needs no separate installation — it runs inside your application.
+
+```properties
+spring.datasource.url=jdbc:h2:mem:testdb
+spring.datasource.driverClassName=org.h2.Driver
+spring.datasource.username=sa
+spring.datasource.password=password
+```
+
+With `spring.h2.console.enabled=true`, you get a web UI (usually at `/h2-console`) to inspect the in-memory tables while the app runs.
+
+AI Summary:
+H2 is a Java-native database useful for quick testing without setting up MySQL/PostgreSQL. Data in `mem:` mode disappears when the app stops, since it lives only in memory.
+
+### Connecting to a PostgreSQL Database
+We need these dependencies:  
+PostgreSQL Driver  
+JDBC API/JPA
+
+
+## Lombok
+
+Lombok is a library that generates boilerplate Java code (getters, setters, constructors, `toString()`, etc.) automatically at compile time using annotations, instead of you writing it by hand.
+
+```java
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class User {
+    private Long id;
+    private String name;
+}
+```
+
+Without Lombok, you'd manually write `getId()`, `setId()`, `getName()`, `setName()`, and constructors yourself.
+
+**@Data** is a shortcut annotation that bundles `@Getter`, `@Setter`, `@ToString`, `@EqualsAndHashCode`, and a constructor for final fields.
+
+AI Summary:
+Lombok removes repetitive code (getters/setters/constructors) by generating it during compilation via annotations, reducing class file size and manual maintenance.
+
+
+
+
+
+
 # Eklemem gerekenler #
-User auth: JWT, refresh token
-Accounts, transactions, balance
-PostgreSQL schema düzgün
-Redis cache
-Idempotency key: aynı ödeme iki kere işlenmesin
-Rate limiting
-Swagger/OpenAPI
-Unit + integration tests
-Docker Compose ile tek komutta çalışsın
-GitHub Actions CI
-Cloud’a deploy edilmiş demo
-README: architecture diagram, API examples, trade-offs
+User auth: JWT, refresh token  
+Accounts, transactions, balance  
+PostgreSQL schema düzgün  
+Redis cache  
+Idempotency key: aynı ödeme iki kere işlenmesin  
+Rate limiting  
+Swagger/OpenAPI  
+Unit + integration tests  
+Docker Compose ile tek komutta çalışsın  
+GitHub Actions CI  
+Cloud’a deploy edilmiş demo  
+README: architecture diagram, API examples, trade-offs  
 
 
 # .md syntaxı hakkında öğrendiğim: 
 
 kod bloğu yazmaca:
-```c 
+```c  
 printf("hello world");
     int main void()
     // I'm written with ``` yani alt gr , yapın birkaç kez 
@@ -198,3 +429,20 @@ printf("hello world");
 | ----------|-----------|
 | 1. zart   | 1. zurt   |
 | 2. zart| 2.zurt|
+
+### 2 spaces at the end to line break
+#### Boşluklu:
+a1  
+a2  
+
+#### 2 Boşluksuz:
+a1
+a2
+
+### To give links
+<https://docs.spring.io/spring-boot/appendix/application-properties/index.html>
+#### Link with note
+[ Click to visit Conf Application Properties Page ](https://docs.spring.io/spring-boot/appendix/application-properties/index.html)
+
+
+### lokal

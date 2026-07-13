@@ -47,7 +47,7 @@ public class CreditScoreService {
    private int calculateMockScore(String tcNo) {
        int sum = tcNo.chars().map(c -> c - '0').sum();
        return Math.abs((sum * 1900) % 1900);
-   }
+   } // Bu niye böyle 0 döndürüyor hep
  
    private String categorize(int score) {
        if (score >= 1300) return "DUSUK_RISK";

@@ -19,7 +19,7 @@ services:
      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/miniscore
      SPRING_DATASOURCE_USERNAME: miniscore_user
      SPRING_DATASOURCE_PASSWORD: miniscore_pass
-     JWT_SECRET: gizli-anahtar-en-az-256-bit-uzunlugunda-olmalidir
+     JWT_SECRET: O2uyxNS3NmHlWqogNA3PNxGd/bIRMZMHaBUcfGYMfGg=
    depends_on:
      - db
  

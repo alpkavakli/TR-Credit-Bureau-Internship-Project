@@ -11,7 +11,7 @@ spring:
      hibernate.format_sql: true
  
 jwt:
- secret: gizli-anahtar-en-az-256-bit-uzunlugunda-olmalidir
+ secret: O2uyxNS3NmHlWqogNA3PNxGd/bIRMZMHaBUcfGYMfGg=
  expiration: 86400000      # 24 saat (milisaniye cinsinden)
  
 server:

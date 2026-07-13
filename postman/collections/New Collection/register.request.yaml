@@ -1,0 +1,24 @@
+$kind: http-request
+name: register
+url: " http://localhost:8080/api/auth/register"
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \  \"firstName\": \"Alp\",\r
+
+    \  \"lastName\": \"Kavakli2\",\r
+
+    \  \"tcNo\": \"12345678902\",\r
+
+    \  \"email\": \"alp@test.com\",\r
+
+    \  \"password\": \"sifre12345\"\r
+
+    }"
+scripts:
+  - type: afterResponse
+    code: ""
+    language: text/javascript
+order: 1783673545520
