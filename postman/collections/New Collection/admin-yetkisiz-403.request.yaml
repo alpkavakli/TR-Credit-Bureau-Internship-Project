@@ -1,0 +1,26 @@
+$kind: http-request
+name: admin-yetkisiz-403
+# EN ONEMLI GUVENLIK TESTI:
+# Asagidaki token, ADMIN'in degil normal kullanicinin (kalp@test.com) token'i.
+# Onunla admin ucuna gidiyoruz -> 403 gelmeli.
+# 403 gelmezse @PreAuthorize / hasRole zinciri bozulmus demektir.
+# Bu test ozellikle @EnableMethodSecurity unutulursa olusan
+# "sessizce korumasiz kalma" durumunu yakalamak icin var.
+url: "http://localhost:8080/api/admin/users"
+method: GET
+auth:
+  type: bearer
+  credentials:
+    # kalp@test.com (USER) token'i - admin-login'in token'i DEGIL. Karistirma!
+    token: "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJrYWxwQHRlc3QuY29tIiwiaWF0IjoxNzg0MjA2MDU1LCJleHAiOjE3ODQyOTI0NTV9.Ps5Vs0MTdEdXH5vuVUC9LH4cAGmij9J8BTyODUY2_Sk"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("403 Forbidden - USER admin ucuna GIREMEMELI", function () {
+          pm.response.to.have.status(403);
+      });
+      pm.test("hata mesaji JSON olarak donmeli", function () {
+          pm.expect(pm.response.json().message).to.eql("Bu işlem için yetkiniz yok.");
+      });
+    language: text/javascript
+order: 5700

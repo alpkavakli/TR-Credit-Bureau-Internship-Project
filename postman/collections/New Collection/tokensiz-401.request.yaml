@@ -1,0 +1,21 @@
+$kind: http-request
+name: tokensiz-401
+# NEGATIF TEST: hic token gondermiyoruz (auth: none).
+# Bu cevabi SecurityConfig'teki restAuthEntryPoint uretir, GlobalExceptionHandler DEGIL:
+# filtre zinciri DispatcherServlet'ten once calisir, @RestControllerAdvice oraya ulasmaz.
+# Eskiden HttpStatusEntryPoint kullaniliyordu ve govde BOS donuyordu; artik JSON doner.
+url: "http://localhost:8080/api/scores/my-score"
+method: GET
+auth:
+  type: none
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("401 Unauthorized", function () {
+          pm.response.to.have.status(401);
+      });
+      pm.test("govde BOS olmamali, JSON mesaj donmeli", function () {
+          pm.expect(pm.response.json()).to.have.property("message");
+      });
+    language: text/javascript
+order: 3500

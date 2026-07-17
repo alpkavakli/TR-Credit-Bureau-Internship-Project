@@ -1,0 +1,23 @@
+$kind: http-request
+name: kullanıcı-skor
+url: "http://localhost:8080/api/scores/my-score"
+method: GET
+auth:
+  type: bearer
+  credentials:
+    # kalp@test.com (USER) token'i. 24 saat gecerli.
+    # 401 alirsan: "login" istegini calistir, yeni token'i buraya yapistir.
+    token: "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJrYWxwQHRlc3QuY29tIiwiaWF0IjoxNzg0MjA2MDU1LCJleHAiOjE3ODQyOTI0NTV9.Ps5Vs0MTdEdXH5vuVUC9LH4cAGmij9J8BTyODUY2_Sk"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("200 OK", function () {
+          pm.response.to.have.status(200);
+      });
+      pm.test("skor 1-1900 araliginda olmali", function () {
+          const s = pm.response.json().score;
+          pm.expect(s).to.be.at.least(1);
+          pm.expect(s).to.be.at.most(1900);
+      });
+    language: text/javascript
+order: 4000

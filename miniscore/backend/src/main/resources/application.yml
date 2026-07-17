@@ -13,6 +13,15 @@ spring:
 jwt:
  secret: O2uyxNS3NmHlWqogNA3PNxGd/bIRMZMHaBUcfGYMfGg=
  expiration: 86400000      # 24 saat (milisaniye cinsinden)
+
+# AdminSeeder bu degerleri okuyup uygulama acilirken ilk ADMIN'i yaratir.
+# register() herkesi USER yaptigi icin sisteme baska turlu admin girisi yok.
+# Gercek projede bu sifre yml'de DEGIL, ortam degiskeninde tutulur.
+app:
+ admin:
+   email: admin@findeks.com
+   password: admin12345
+   tc-no: "00000000000"     # tirnak sart: tirnaksiz YAML bunu 0 sayisina cevirirdi
  
 server:
  port: 8080

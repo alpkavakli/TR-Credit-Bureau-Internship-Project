@@ -1,0 +1,30 @@
+$kind: http-request
+name: admin-login
+# Bu kullaniciyi AdminSeeder olusturur (application.yml -> app.admin.*).
+# register() herkesi USER yaptigi icin sisteme baska turlu admin girisi yoktur.
+#
+# Yanittaki token, butun "admin-*" isteklerine ELLE yapistirilmis durumda.
+# USER token'i ile ADMIN token'i BILEREK ayri tutuluyor: ayni olsalardi
+# "USER admin ucuna girebiliyor mu?" testini (admin-yetkisiz-403) yapamazdik.
+# SURESI DOLARSA: bu istegi calistir, token'i kopyala, admin-* dosyalarindaki
+# "token:" satirlarina yapistir.
+url: "http://localhost:8080/api/auth/login"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "email": "admin@findeks.com",
+      "password": "admin12345"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("200 OK", function () {
+          pm.response.to.have.status(200);
+      });
+      pm.test("rol ADMIN olmali", function () {
+          pm.expect(pm.response.json().role).to.eql("ADMIN");
+      });
+    language: text/javascript
+order: 2500

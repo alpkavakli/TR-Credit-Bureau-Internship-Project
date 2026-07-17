@@ -1,24 +1,26 @@
 $kind: http-request
 name: register
-url: " http://localhost:8080/api/auth/register"
+# DIKKAT: URL'in basinda bir BOSLUK vardi (" http://...").
+# Postman onu %20 olarak gonderiyordu -> Spring'in permitAll kurali "/api/auth/**"
+# ile eslesmiyordu -> sebepsiz 401 aliyorduk. Bosluk silindi.
+url: "http://localhost:8080/api/auth/register"
 method: POST
 body:
   type: json
-  content: "{\r
-
-    \  \"firstName\": \"Alp\",\r
-
-    \  \"lastName\": \"Kavakli2\",\r
-
-    \  \"tcNo\": \"12345678902\",\r
-
-    \  \"email\": \"alp@test.com\",\r
-
-    \  \"password\": \"sifre12345\"\r
-
-    }"
+  content: |-
+    {
+      "firstName": "Alp",
+      "lastName": "Kavakli2",
+      "tcNo": "12345678902",
+      "email": "alp@test.com",
+      "password": "sifre12345"
+    }
 scripts:
   - type: afterResponse
-    code: ""
+    # Kayit basariliysa donen token'i koleksiyon degiskenine yaziyoruz.
+    code: |-
+      pm.test("201 Created (ilk kayit) veya 409 Conflict (zaten kayitli)", function () {
+          pm.expect([201, 409]).to.include(pm.response.code);
+      });
     language: text/javascript
-order: 1783673545520
+order: 1000

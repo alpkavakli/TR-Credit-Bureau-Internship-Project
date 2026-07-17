@@ -363,6 +363,73 @@ We need these dependencies:
 PostgreSQL Driver  
 JDBC API/JPA
 
+**@Log**: 
+
+Using docker compose file helps starting up a database.
+```yml
+    db:
+    image: postgres
+    ports:
+     - "5432:5432"
+    restart: always
+    environment:
+        POSTGRES_PASSWORD: giveMeAPassword!
+```
+
+#### Required `application.properties` for PostgreSQL in Spring Boot
+
+```properties
+spring.datasource.url=jdbc:postgresql://localhost:5432/postgres
+spring.datasource.username=postgres
+spring.datasource.password=changemeinprod!
+spring.datasource.driver-class-name=org.postgresql.Driver
+```
+
+#### What each line does
+
+- **`spring.datasource.url`** — connection string (host, port, db name). Equivalent to a `DATABASE_URL` or `pg.Pool` config in Node.
+- **`spring.datasource.username`** — DB user.
+- **`spring.datasource.password`** — DB password.
+- **`spring.datasource.driver-class-name`** — tells Spring which JDBC driver to load. JDBC equivalent of importing the `pg` package in Node, but explicit since drivers register via reflection, not `import`.
+
+#### Also required
+
+- PostgreSQL JDBC driver dependency in `pom.xml`:
+```xml
+<dependency>
+    <groupId>org.postgresql</groupId>
+    <artifactId>postgresql</artifactId>
+    <scope>runtime</scope>
+</dependency>
+```
+
+#### Optional (for Spring Data JPA)
+
+```properties
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+```
+
+#### Security note
+
+Don't commit a real password. Use an env var instead:
+
+```properties
+spring.datasource.password=${DB_PASSWORD}
+```
+
+## Initialise DB schema
+
+In tutorial we made a databaseConfig class, that's it rn.
+
+### What is a DAO?
+
+Database Access Object is a design pattern that isolates your database access logic behind an interface.  
+Rest of the app doesn't use raw queries anymore, they call the methods in this DAO interfaces.
+
+In Spring Boot we usually don't write the DAOs ourselves, JPARepository/CrudRepository interfaces in repo folder are DAOs which are auto implemented by Spring Boot. 
+
+
 
 ## Lombok
 
@@ -388,7 +455,26 @@ Lombok removes repetitive code (getters/setters/constructors) by generating it d
 
 
 
+## So what's this Tomcat
+Tomcat's job is to be a HTTP server and run Java Web Code. It owns the TCP socket on port 8080. It does some low-level grunt work like parsing HTTP, and other network stuff.
 
+In node.js, this job is already built-in the language, we don't need a seperate language.
+But in Java, we need a seperate software that handles it.
+
+### What's a servlet
+A servlet is a java object that handles an HTTP request.
+
+**Servlet Containers** like Tomcat handles these servlet objects, for example which request gets handled by which servlet.
+
+Tomcat is a thread pool (default 200). Each request is a thread held for the entire request. Blocking is normal and expected in here, the concurrency is handled by having many threads.
+
+Also, each thread uses a database connection from a database pool (whichever connection is empty, default 10 connections )
+
+### If it consists of threads, what happens when many threads try to use and change the same db column in tomcat?
+
+Java doesn't help us at all, all the threads fire SQL at database, and database is what serializes conflicts like simultaneous changes through locks and transactions. 
+
+***This part has become too long, I've moved it to  [ here ]( /ConcurrencySafety-WhatILearned.md)***
 
 
 # Eklemem gerekenler #

@@ -1,0 +1,27 @@
+$kind: http-request
+name: admin-rol-degistir
+# PUT cunku islem idempotent: ayni istegi 10 kez gondersen sonuc ayni (rol o deger olur).
+# Bu istek audit_logs'a ROLE_CHANGE kaydi da birakir.
+url: "http://localhost:8080/api/admin/users/1/role"
+method: PUT
+auth:
+  type: bearer
+  credentials:
+    token: "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbkBmaW5kZWtzLmNvbSIsImlhdCI6MTc4NDIwNjA1NSwiZXhwIjoxNzg0MjkyNDU1fQ.dezBHjMvNeww2SvUEOgf3Pzg-gm65sNfvMQ-oGruc4k"
+body:
+  type: json
+  content: |-
+    {
+      "role": "USER"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("200 OK", function () {
+          pm.response.to.have.status(200);
+      });
+      pm.test("rol istenen degere esit olmali", function () {
+          pm.expect(pm.response.json().role).to.eql("USER");
+      });
+    language: text/javascript
+order: 6500

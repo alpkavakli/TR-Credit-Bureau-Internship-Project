@@ -1,0 +1,22 @@
+$kind: http-request
+name: kullanıcı-gecmis
+url: "http://localhost:8080/api/scores/my-history"
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJrYWxwQHRlc3QuY29tIiwiaWF0IjoxNzg0MjA2MDU1LCJleHAiOjE3ODQyOTI0NTV9.Ps5Vs0MTdEdXH5vuVUC9LH4cAGmij9J8BTyODUY2_Sk"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("200 OK", function () {
+          pm.response.to.have.status(200);
+      });
+      pm.test("haftalar artan sirada olmali", function () {
+          const arr = pm.response.json();
+          for (let i = 1; i < arr.length; i++) {
+              pm.expect(new Date(arr[i].weekStart)).to.be.above(new Date(arr[i-1].weekStart));
+          }
+      });
+    language: text/javascript
+order: 3774

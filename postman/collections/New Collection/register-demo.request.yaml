@@ -1,0 +1,48 @@
+$kind: http-request
+name: register-demo
+# SUNUM ICIN: mevcut "register" istegi hep 409 doner (alp@test.com zaten kayitli),
+# yani REGISTER audit'ini ve @PrePersist'i CANLI gosteremez. Bu istek gosterir.
+#
+# {{$timestamp}} = Postman'in KENDI hazir degiskeni (o anki unix zamani, 10 hane).
+# Koleksiyon degiskeni DEGIL -> hicbir yerde tanimlamaya gerek yok, Postman
+# kurulumdan itibaren bunu bilir. Her calistirmada farkli bir kullanici uretir:
+#   email -> demo1784206055@test.com
+#   tcNo  -> "9" + 10 hane = 11 hane (tcNo alani tam 11 karakter olmali)
+#
+# CALISMAZSA (yanit 400/409 gelirse): {{$timestamp}} yerine elle bir sayi yaz,
+# ornegin tcNo "91111111111" ve email "demo1@test.com" -> sonra her sunumda
+# sayiyi degistir. Islev ayni, sadece elle.
+#
+# GOSTERILECEK IKI SEY:
+#   1) Email'i BUYUK harfle gonderiyoruz -> yanittaki email KUCUK harfli doner.
+#      Bu User.@PrePersist'in canli kaniti.
+#   2) Sonra admin-audit-logs -> en ustte REGISTER kaydi.
+url: "http://localhost:8080/api/auth/register"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "firstName": "Demo",
+      "lastName": "Kullanici",
+      "tcNo": "9{{$timestamp}}",
+      "email": "DEMO{{$timestamp}}@Test.COM",
+      "password": "sifre12345"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("201 Created", function () {
+          pm.response.to.have.status(201);
+      });
+      // @PrePersist kaniti: BUYUK harf gonderdik, kucuk harf geri geldi.
+      pm.test("@PrePersist e-postayi kucuk harfe cevirmis olmali", function () {
+          const email = pm.response.json().email;
+          pm.expect(email).to.eql(email.toLowerCase());
+          pm.expect(email).to.not.include("DEMO");
+      });
+      pm.test("yeni kullanici USER rolu ile dogar (kimse kendini ADMIN yapamaz)", function () {
+          pm.expect(pm.response.json().role).to.eql("USER");
+      });
+    language: text/javascript
+order: 1500

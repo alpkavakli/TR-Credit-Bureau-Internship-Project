@@ -1,0 +1,23 @@
+$kind: http-request
+name: admin-kullanicilar
+url: "http://localhost:8080/api/admin/users"
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbkBmaW5kZWtzLmNvbSIsImlhdCI6MTc4NDIwNjA1NSwiZXhwIjoxNzg0MjkyNDU1fQ.dezBHjMvNeww2SvUEOgf3Pzg-gm65sNfvMQ-oGruc4k"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("200 OK", function () {
+          pm.response.to.have.status(200);
+      });
+      // DTO deseninin ASIL testi: sifre hash'i API'den asla cikmamali.
+      pm.test("password alani DONMEMELI", function () {
+          pm.response.json().forEach(u => pm.expect(u).to.not.have.property("password"));
+      });
+      pm.test("creditScores alani DONMEMELI (lazy loading)", function () {
+          pm.response.json().forEach(u => pm.expect(u).to.not.have.property("creditScores"));
+      });
+    language: text/javascript
+order: 5000

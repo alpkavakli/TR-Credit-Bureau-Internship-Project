@@ -1,0 +1,26 @@
+$kind: http-request
+name: admin-gecersiz-rol-400
+# NEGATIF TEST: Role enum'unda "MUDUR" yok.
+# Jackson govdeyi nesneye ceviremez -> HttpMessageNotReadableException.
+# Bu test ilk calistirildiginda 500 donuyordu (bug); GlobalExceptionHandler'a
+# ozel handler eklenerek 400'e cevrildi. Istemcinin hatasi 5xx olmamalidir.
+url: "http://localhost:8080/api/admin/users/1/role"
+method: PUT
+auth:
+  type: bearer
+  credentials:
+    token: "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbkBmaW5kZWtzLmNvbSIsImlhdCI6MTc4NDIwNjA1NSwiZXhwIjoxNzg0MjkyNDU1fQ.dezBHjMvNeww2SvUEOgf3Pzg-gm65sNfvMQ-oGruc4k"
+body:
+  type: json
+  content: |-
+    {
+      "role": "MUDUR"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("400 Bad Request (500 DEGIL)", function () {
+          pm.response.to.have.status(400);
+      });
+    language: text/javascript
+order: 6600

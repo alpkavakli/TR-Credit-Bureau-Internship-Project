@@ -1,14 +1,30 @@
 $kind: http-request
 name: login
-url: "http://localhost:8080/api/auth/login "
+# Normal kullanici girisi. Yanitta donen "token" alani; kullanici-skor,
+# kullanici-gecmis ve admin-yetkisiz-403 isteklerine ELLE yapistirilmis durumda.
+# Token 24 saat gecerli (application.yml -> jwt.expiration: 86400000).
+# SURESI DOLARSA: bu istegi calistir, yanittaki token'i kopyala, o uc dosyadaki
+# "token:" satirina yapistir. (Baska yere dokunmana gerek yok.)
+url: "http://localhost:8080/api/auth/login"
 method: POST
 body:
   type: json
-  content: "{\r
-
-    \  \"email\": \"alp@test.com\",\r
-
-    \  \"password\": \"sifre12345\"\r
-
-    }\r\n"
-order: 2011627256540759
+  content: |-
+    {
+      "email": "kalp@test.com",
+      "password": "secret123"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("200 OK", function () {
+          pm.response.to.have.status(200);
+      });
+      pm.test("token donmeli", function () {
+          pm.expect(pm.response.json().token).to.be.a("string");
+      });
+      pm.test("rol USER olmali", function () {
+          pm.expect(pm.response.json().role).to.eql("USER");
+      });
+    language: text/javascript
+order: 2000

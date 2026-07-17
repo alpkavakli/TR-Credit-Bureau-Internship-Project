@@ -1,0 +1,28 @@
+$kind: http-request
+name: login-yanlis-sifre
+# SUNUM ICIN ONEMLI ISTEK.
+# Bilerek yanlis sifre gonderiyoruz -> 401 doner ve exception firlar.
+# AMA audit_logs'a LOGIN_FAILED kaydi YAZILIR ve orada KALIR.
+# Bu, AuditService'teki REQUIRES_NEW'in canli kanitidir:
+# istek basarisiz oldugu halde denetim kaydi silinmiyor.
+# Calistirdiktan sonra admin-audit-logs'u ac -> en ustte LOGIN_FAILED gorunur.
+url: "http://localhost:8080/api/auth/login"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "email": "kalp@test.com",
+      "password": "BILEREK_YANLIS"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("401 Unauthorized", function () {
+          pm.response.to.have.status(401);
+      });
+      pm.test("hangi alanin hatali oldugu SOYLENMEMELI (user enumeration)", function () {
+          pm.expect(pm.response.json().message).to.eql("E-posta veya şifre hatalı.");
+      });
+    language: text/javascript
+order: 2200
