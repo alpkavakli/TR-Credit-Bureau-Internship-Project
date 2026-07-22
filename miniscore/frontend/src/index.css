@@ -1,0 +1,198 @@
+/*
+ * Referans görseldeki sade "düz HTML" estetiği:
+ * beyaz zemin, serif yazı tipi, ince ayraç çizgisi, süssüz input/button.
+ * Renk neredeyse yok; vurgu sadece bağlantılarda (koyu yeşil).
+ */
+
+:root {
+  --ink: #1a1a1a;
+  --muted: #6b6b6b;
+  --line: #d8d8d8;
+  --link: #2a6437;
+  --field-border: #1a1a1a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 2rem 1rem;
+  background: #fff;
+  color: var(--ink);
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  font-size: 17px;
+  line-height: 1.5;
+}
+
+/* Ortalanmış, sabit genişlikli tek sütun */
+.page {
+  max-width: 850px;
+  margin: 0 auto;
+}
+
+/* ---- Başlık şeridi ---- */
+.site-header {
+  display: flex;
+  align-items: baseline;
+  gap: 1.6rem;
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.site-title {
+  margin: 0;
+  font-size: 1.55rem;
+  font-weight: 400;
+}
+
+.site-nav {
+  display: flex;
+  align-items: baseline;
+  gap: 1.4rem;
+}
+
+.site-header a {
+  color: var(--link);
+  text-decoration: underline;
+}
+
+/* Bulunulan sayfanın bağlantısı düz siyah ve tıklanamaz görünür */
+.site-header a.active {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.site-header .spacer {
+  flex: 1;
+}
+
+.site-header .user-email {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* ---- Genel metin ---- */
+.subtle {
+  color: var(--muted);
+  margin: 1.1rem 0;
+}
+
+.error-msg {
+  color: #a11;
+  margin: 1rem 0;
+}
+
+h2 {
+  font-weight: 400;
+  font-size: 1.25rem;
+  margin: 1.4rem 0 0.6rem;
+}
+
+/* ---- Form öğeleri ---- */
+.field-row {
+  display: flex;
+  gap: 0.6rem;
+  margin: 1rem 0;
+}
+
+input[type='text'],
+input[type='email'],
+input[type='password'] {
+  flex: 1;
+  padding: 0.55rem 0.7rem;
+  font-family: inherit;
+  font-size: 1.05rem;
+  color: var(--ink);
+  background: #fff;
+  border: 2px solid var(--field-border);
+  border-radius: 2px;
+}
+
+input::placeholder {
+  color: #9a9a9a;
+}
+
+button {
+  padding: 0.55rem 1.1rem;
+  font-family: inherit;
+  font-size: 1.05rem;
+  color: var(--ink);
+  background: #efefef;
+  border: 1px solid #9a9a9a;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: #e4e4e4;
+}
+
+button:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
+/* Dar form (giriş / kayıt) */
+.narrow-form {
+  max-width: 340px;
+}
+
+.narrow-form .field-row {
+  flex-direction: column;
+}
+
+.narrow-form button {
+  align-self: flex-start;
+}
+
+/* ---- Skor kartı ---- */
+.score-card {
+  margin-top: 1.6rem;
+  padding: 1.1rem 1.3rem;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--muted);
+  max-width: 340px;
+}
+
+.score-card h2 {
+  margin: 0 0 0.4rem;
+  font-size: 1.1rem;
+}
+
+.score-number {
+  margin: 0;
+  font-size: 2.6rem;
+  line-height: 1.1;
+}
+
+.risk-label {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+}
+
+/* Risk kategorisine göre sol şerit rengi (CreditScoreService.categorize) */
+.risk-DUSUK_RISK { border-left-color: #2a6437; }
+.risk-ORTA_RISK { border-left-color: #b07d1a; }
+.risk-YUKSEK_RISK { border-left-color: #a11; }
+
+/* ---- Tablolar (geçmiş, admin) ---- */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.45rem 0.6rem 0.45rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+th {
+  font-weight: 400;
+  color: var(--muted);
+  font-size: 0.9rem;
+}

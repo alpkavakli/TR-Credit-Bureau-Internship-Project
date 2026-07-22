@@ -477,6 +477,35 @@ Java doesn't help us at all, all the threads fire SQL at database, and database 
 ***This part has become too long, I've moved it to  [ here ]( /ConcurrencySafety-WhatILearned.md)***
 
 
+# Spring JDBC(SQL) part
+
+Mocking means replacing a class’s real dependencies with fake, controllable versions while unit-testing that class.
+
+
+In the database project, we used @ExtendWith(Mockito.extension class), @Mock, @InjectMocks
+
+
+# Annotation Table
+
+
+### @RestController
+
+A stereotype annotation combining two things:
+- `@Controller` — tells Spring this class handles incoming web requests.
+- `@ResponseBody` — tells Spring to return the method's result directly as the HTTP response body, instead of rendering it as an HTML view.
+
+### @RequestMapping("/")
+
+Maps a specific URL path to a specific method.
+- The value in parentheses (`"/"`) is the path.
+- When a request matches that path, Spring routes it to this method.
+
+### @EnableAutoConfiguration
+This annotation tells Spring Boot to
+“guess” how you want to configure Spring, based on the jar dependencies that you have added.  
+Since spring-boot-starter-web added Tomcat and Spring MVC, the auto-configuration assumes that
+you are developing a web application and sets up Spring accordingly
+
 # Eklemem gerekenler #
 User auth: JWT, refresh token  
 Accounts, transactions, balance  
