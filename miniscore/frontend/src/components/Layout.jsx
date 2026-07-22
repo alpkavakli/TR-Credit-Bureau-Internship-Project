@@ -14,8 +14,10 @@ export default function Layout({ children }) {
       <header className='site-header'>
         <h1 className='site-title'>findeks miniscore</h1>
         <nav className='site-nav'>
-          <NavLink to='/dashboard'>skorum</NavLink>
-          <NavLink to='/reports'>geçmiş</NavLink>
+          {/* ADMIN'in findeks raporu yok -> skorum/geçmiş menüsü sadece USER'a gösterilir. */}
+          {user?.role !== 'ADMIN' && <NavLink to='/dashboard'>skorum</NavLink>}
+          {user?.role !== 'ADMIN' && <NavLink to='/reports'>geçmiş</NavLink>}
+          <NavLink to='/profile'>profil</NavLink>
           {user?.role === 'ADMIN' && <NavLink to='/admin'>yönetim</NavLink>}
         </nav>
         <span className='spacer' />

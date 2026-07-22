@@ -55,6 +55,8 @@ public class SecurityConfig {
            .sessionManagement(s -> s.sessionCreationPolicy(STATELESS))
            .authorizeHttpRequests(auth -> auth
               .requestMatchers("/api/auth/**").permitAll()
+              // Swagger UI ve OpenAPI semasi herkese acik (gelistirme kolayligi).
+              .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
               .requestMatchers("/api/admin/**").hasRole("ADMIN")
                .anyRequest().authenticated()
            )
@@ -108,7 +110,8 @@ public class SecurityConfig {
  
    private CorsConfigurationSource corsConfigSource() {
        CorsConfiguration config = new CorsConfiguration();
-      config.setAllowedOrigins(List.of("http://localhost:5173"));
+      // 5173 = Vite dev sunucusu; 3000 = Nginx ile konteynerize edilmis frontend (docker compose).
+      config.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:3000"));
       config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
       config.setAllowedHeaders(List.of("*"));
        UrlBasedCorsConfigurationSource source =

@@ -12,9 +12,14 @@ export function AuthProvider({ children }) {
 
   const login = (data) => {
     localStorage.setItem('token', data.token);
+    // Refresh token backend'den geldiğinde saklıyoruz; axiosInstance 401'de bununla
+    // sessizce yeni access token alır.
+    if (data.refreshToken) {
+      localStorage.setItem('refreshToken', data.refreshToken);
+    }
     localStorage.setItem('email', data.email);
     localStorage.setItem('role', data.role);
-    setUser(data);
+    setUser({ token: data.token, email: data.email, role: data.role });
   };
 
   const logout = () => {

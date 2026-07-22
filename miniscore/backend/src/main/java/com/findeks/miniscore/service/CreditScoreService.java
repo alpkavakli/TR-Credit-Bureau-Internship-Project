@@ -1,7 +1,8 @@
 package com.findeks.miniscore.service;
 
-import java.time.LocalDate;         // gun bazli tarih (saat yok) -> hafta hesabi icin
-import java.time.LocalDateTime;     // user.getCreatedAt() bu tipte
+import java.time.Duration;          // iki an arasindaki sure -> hafta sayimi icin
+import java.time.LocalDate;         // gun bazli tarih (saat yok) -> haftanin baslangic tarihi
+import java.time.LocalDateTime;     // user.getCreatedAt() bu tipte; hafta siniri saat de icerir
 import java.util.List;
 import java.util.stream.Collectors; // stream().collect(...) icin
 
@@ -10,8 +11,10 @@ import org.springframework.transaction.annotation.Transactional;     // metodu t
 
 import com.findeks.miniscore.dto.CreditScoreResponse;
 import com.findeks.miniscore.entity.CreditScore;
+import com.findeks.miniscore.entity.Role;
 import com.findeks.miniscore.entity.User;
 import com.findeks.miniscore.exception.NotFoundException;
+import com.findeks.miniscore.exception.ScoreNotAllowedException;
 import com.findeks.miniscore.repository.CreditScoreRepository;
 import com.findeks.miniscore.repository.UserRepository;
 
@@ -43,6 +46,7 @@ public class CreditScoreService {
               User user = userRepository.findByEmail(email)
                .orElseThrow(() -> new NotFoundException("Kullanıcı bulunamadı: " + email));
 
+       ensureHasScore(user);   // ADMIN'in findeks raporu olmaz
 
        generateMissingWeeks(user, currentWeek());   // gecmis + bu haftayi (yoksa) uret, append-only
 
@@ -63,9 +67,31 @@ public class CreditScoreService {
    public List<CreditScoreResponse> getHistory(String email) {
              User user = userRepository.findByEmail(email)
                .orElseThrow(() -> new NotFoundException("Kullanıcı bulunamadı: " + email));
+       ensureHasScore(user);   // ADMIN'in findeks raporu olmaz
        return creditScoreRepository.findByUserOrderByWeekIndexAsc(user).stream()
                .map(cs -> toResponse(user, cs))
                .collect(Collectors.toList());
+   }
+
+   /**
+    * ADMIN icin: BIR baska kullanicinin tum skor gecmisi.
+    * Kendi getHistory'den farki: eksik haftalari URETIR (generateMissingWeeks). Boylece
+    * hic "Kredi Skorum" dememis bir kullanicinin bile admin panelinde verisi gorunur.
+    * Cagiran (AdminService) hedefin ADMIN olmadigini zaten dogruluyor.
+    */
+   @Transactional
+   public List<CreditScoreResponse> getHistoryForUser(User user) {
+       generateMissingWeeks(user, currentWeek());
+       return creditScoreRepository.findByUserOrderByWeekIndexAsc(user).stream()
+               .map(cs -> toResponse(user, cs))
+               .collect(Collectors.toList());
+   }
+
+   // ADMIN'in findeks raporu yoktur -> skor uclarina erisemez.
+   private void ensureHasScore(User user) {
+       if (user.getRole() == Role.ADMIN) {
+           throw new ScoreNotAllowedException("Yöneticilerin findeks raporu bulunmaz.");
+       }
    }
 
    // ---------------------------------------------------------------
@@ -158,13 +184,23 @@ public class CreditScoreService {
    //  Yardimcilar
    // ---------------------------------------------------------------
 
-   // Bugunku hafta indeksi. toEpochDay = 1970'ten bugune gun sayisi; /7 -> 7 gunluk pencere.
+   // HAFTA SINIRI: her PAZARTESI saat 09:00. Bir hafta, bir Pazartesi 09:00'dan bir
+   // sonraki Pazartesi 09:00'a kadar surer. Referans nokta: 5 Ocak 1970 (bir Pazartesi) 09:00.
+   // (Eski hesap epochDay/7 idi; epochDay 0 = 1 Ocak 1970 PERSEMBE oldugu icin haftalar
+   //  Persembe'ye hizaliydi -> "haftanin baslangici" yanlis gunu gosteriyordu.)
+   private static final LocalDateTime WEEK_EPOCH = LocalDateTime.of(1970, 1, 5, 9, 0);
+   private static final long WEEK_MINUTES = 7L * 24 * 60;
+
+   // Bugun hangi haftaya duser?
    private long currentWeek() {
-       return LocalDate.now().toEpochDay() / 7;
+       return weekOf(LocalDateTime.now());
    }
 
+   // t anindan WEEK_EPOCH'a gore gecen TAM hafta sayisi. floorDiv: Pazartesi 09:00'dan
+   // ONCE (ör. Pzt 08:30) hala onceki haftaya sayilir; tam 09:00'da yeni hafta baslar.
    private long weekOf(LocalDateTime t) {
-       return t.toLocalDate().toEpochDay() / 7;
+       long minutes = Duration.between(WEEK_EPOCH, t).toMinutes();
+       return Math.floorDiv(minutes, WEEK_MINUTES);
    }
 
    // Math.floorMod negatiflerde de dogru (0..n-1) sonuc verir; % operatoru negatif verebilir.
@@ -179,9 +215,11 @@ public class CreditScoreService {
        return "YUKSEK_RISK";
    }
 
-   // Entity -> DTO. Haftanin gercek tarihi weekIndex'ten turetilir (queriedAt'ten degil).
+   // Entity -> DTO. Haftanin baslangic tarihi weekIndex'ten turetilir (queriedAt'ten degil).
    private CreditScoreResponse toResponse(User user, CreditScore cs) {
-       LocalDate weekStart = LocalDate.ofEpochDay(cs.getWeekIndex() * 7);
+       // WEEK_EPOCH Pazartesi 09:00 -> plusWeeks hep Pazartesi'de kalir; saati atip
+       // sadece TARIHI donuyoruz -> o haftanin baslangici olan Pazartesi'nin tarihi.
+       LocalDate weekStart = WEEK_EPOCH.plusWeeks(cs.getWeekIndex()).toLocalDate();
        return new CreditScoreResponse(
                cs.getScore(),
                cs.getRiskCategory(),

@@ -59,8 +59,19 @@ public class AdminSeeder implements CommandLineRunner {
         String email = EmailUtils.normalize(adminEmail);
 
         // IDEMPOTENT olmali: uygulama her acilista calisir, ikinci kez admin YARATMAMALI.
-        if (userRepository.existsByEmail(email)) {
-            log.info("Admin kullanıcısı zaten mevcut: {}", email);
+        // AMA sadece "var mi" demek yetmiyor: seeded admin bir sekilde USER'a dusmusse
+        // (ör. panelden yanlislikla rolu degistirildi) sistem KILITLENIR -> kimse
+        // /api/admin/**'e giremez, seeder de "zaten var" deyip cikardi. Bu yuzden
+        // KENDINI IYILESTIRIYOR: e-posta varsa ama rolu ADMIN degilse geri ADMIN yapar.
+        var existing = userRepository.findByEmail(email).orElse(null);
+        if (existing != null) {
+            if (existing.getRole() != Role.ADMIN) {
+                existing.setRole(Role.ADMIN);
+                userRepository.save(existing);
+                log.warn("Admin kullanıcısının rolü ADMIN'e geri yüklendi: {}", email);
+            } else {
+                log.info("Admin kullanıcısı zaten mevcut: {}", email);
+            }
             return;
         }
 

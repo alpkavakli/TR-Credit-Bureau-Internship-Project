@@ -3,18 +3,27 @@ package com.findeks.miniscore.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.findeks.miniscore.dto.AuditLogResponse;
+import com.findeks.miniscore.dto.CreditScoreResponse;
+import com.findeks.miniscore.dto.SettingsResponse;
 import com.findeks.miniscore.dto.UserResponse;
 import com.findeks.miniscore.entity.AuditLog;
 import com.findeks.miniscore.entity.Role;
 import com.findeks.miniscore.entity.User;
 import com.findeks.miniscore.exception.LastAdminException;
 import com.findeks.miniscore.exception.NotFoundException;
+import com.findeks.miniscore.exception.ReauthenticationFailedException;
+import com.findeks.miniscore.exception.ScoreNotAllowedException;
+import com.findeks.miniscore.exception.SelfRoleChangeException;
 import com.findeks.miniscore.repository.AuditLogRepository;
 import com.findeks.miniscore.repository.UserRepository;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import lombok.RequiredArgsConstructor;
 
@@ -34,6 +43,9 @@ public class AdminService {
     private final UserRepository userRepository;
     private final AuditLogRepository auditLogRepository;
     private final AuditService auditService;
+    private final CreditScoreService creditScoreService;   // baska kullanicinin skor gecmisi icin
+    private final PasswordEncoder passwordEncoder;         // rol degisiminde sifre tekrar dogrulamasi
+    private final SettingService settingService;           // e-posta 2FA ayari
 
     // readOnly = true: sadece okuyoruz -> Hibernate "dirty checking" (degisiklik takibi)
     // yapmaz, gereksiz is yapmaz. Ayrica niyet bildirimi: bu metot veri DEGISTIRMEZ.
@@ -44,6 +56,41 @@ public class AdminService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * ADMIN, bir kullanicinin GUNCEL skorunu ve tum gecmisini gorur.
+     * En yeni snapshot listenin sonundadir (weekIndex ASC). Admin'lerin raporu olmadigi
+     * icin hedef ADMIN ise reddedilir. Kimin baktigini denetime yaziyoruz (KVKK/iz).
+     */
+    @Transactional
+    public List<CreditScoreResponse> getUserScores(Long userId, String adminEmail) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("Kullanıcı bulunamadı: id=" + userId));
+
+        if (user.getRole() == Role.ADMIN) {
+            throw new ScoreNotAllowedException("Yöneticilerin findeks raporu bulunmaz.");
+        }
+
+        List<CreditScoreResponse> history = creditScoreService.getHistoryForUser(user);
+        auditService.log("ADMIN_SCORE_VIEW", adminEmail,
+                "Kullanıcı skoru görüntülendi: " + user.getEmail());
+        return history;
+    }
+
+    // ---- Sistem ayarları (e-posta 2FA açık/kapalı) ----
+
+    @Transactional(readOnly = true)
+    public SettingsResponse getSettings() {
+        return new SettingsResponse(settingService.isEmailTwoFactorEnabled());
+    }
+
+    @Transactional
+    public SettingsResponse setEmailTwoFactor(boolean enabled, String adminEmail) {
+        settingService.setEmailTwoFactorEnabled(enabled);
+        auditService.log("SETTING_CHANGE", adminEmail,
+                "E-posta 2FA " + (enabled ? "açıldı" : "kapatıldı"));
+        return new SettingsResponse(enabled);
+    }
+
     @Transactional(readOnly = true)
     public UserResponse getUser(Long id) {
         User user = userRepository.findById(id)
@@ -51,11 +98,17 @@ public class AdminService {
         return toUserResponse(user);
     }
 
+    // Page.map: sayfa metadata'sini (toplam, sayfa no, boyut) KORUYARAK icerigi
+    // entity'den DTO'ya cevirir. Boylece frontend hem kayitlari hem "kac sayfa var"
+    // bilgisini tek yanittan alir.
+    // search bos ise tumu; doluysa performedBy (e-posta) uzerinden filtreli arama.
     @Transactional(readOnly = true)
-    public List<AuditLogResponse> listAuditLogs() {
-        return auditLogRepository.findAllByOrderByCreatedAtDesc().stream()
-                .map(this::toAuditResponse)
-                .collect(Collectors.toList());
+    public Page<AuditLogResponse> listAuditLogs(String search, Pageable pageable) {
+        Page<AuditLog> page = (search == null || search.isBlank())
+                ? auditLogRepository.findAllByOrderByCreatedAtDesc(pageable)
+                : auditLogRepository.findByPerformedByContainingIgnoreCaseOrderByCreatedAtDesc(
+                        search.trim(), pageable);
+        return page.map(this::toAuditResponse);
     }
 
     /**
@@ -67,9 +120,24 @@ public class AdminService {
      * gorup UPDATE'i kendi atar (dirty checking). save() yazmak da yanlis olmazdi.
      */
     @Transactional
-    public UserResponse updateRole(Long id, Role newRole, String performedBy) {
+    public UserResponse updateRole(Long id, Role newRole, String performedBy, String rawPassword) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Kullanıcı bulunamadı: id=" + id));
+
+        // Islemi yapan admin (performedBy JWT'den gelir -> güvenilir).
+        User actingAdmin = userRepository.findByEmail(performedBy)
+                .orElseThrow(() -> new NotFoundException("İşlemi yapan yönetici bulunamadı."));
+
+        // 1) Admin KENDI rolunu degistiremez (kendini kilitlemesini onler).
+        if (user.getId().equals(actingAdmin.getId())) {
+            throw new SelfRoleChangeException("Kendi rolünüzü değiştiremezsiniz.");
+        }
+
+        // 2) Sifre tekrar dogrulamasi (re-authentication). Acik kalmis oturumu ele geciren
+        //    biri sifreyi bilmeden rol yukseltemesin diye hassas isleme sifre kapisi koyduk.
+        if (!passwordEncoder.matches(rawPassword, actingAdmin.getPassword())) {
+            throw new ReauthenticationFailedException("Şifre hatalı. İşlem iptal edildi.");
+        }
 
         Role oldRole = user.getRole();
 

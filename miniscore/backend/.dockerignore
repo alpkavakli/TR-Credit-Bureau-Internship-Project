@@ -1,0 +1,6 @@
+target/
+.git/
+.gitignore
+*.log
+hs_err_pid*.log
+.mvn/wrapper/maven-wrapper.jar

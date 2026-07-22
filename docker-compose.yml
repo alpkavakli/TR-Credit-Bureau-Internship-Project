@@ -12,7 +12,9 @@ services:
      - pgdata:/var/lib/postgresql/data
  
  backend:
-   build: ./backend
+   # DUZELTME: kod ./miniscore/backend altinda; eski './backend' yolu (bu compose'un
+   # yaninda backend/ olmadigi icin) hicbir zaman calismiyordu. Artik Dockerfile da var.
+   build: ./miniscore/backend
    ports:
      - '8080:8080'
    environment:
@@ -20,8 +22,22 @@ services:
      SPRING_DATASOURCE_USERNAME: miniscore_user
      SPRING_DATASOURCE_PASSWORD: miniscore_pass
      JWT_SECRET: O2uyxNS3NmHlWqogNA3PNxGd/bIRMZMHaBUcfGYMfGg=
+     # E-posta 2FA icin: host makinedeki ortam degiskenlerinden gecirilir (git'e girmez).
+     # 2FA kapaliyken bos kalabilir; admin panelden acmadan once ayarlanmalidir.
+     MAIL_USERNAME: ${MAIL_USERNAME:-}
+     MAIL_PASSWORD: ${MAIL_PASSWORD:-}
    depends_on:
      - db
- 
+
+ # React uygulamasi: Vite ile derlenip Nginx ile sunulur (frontend/Dockerfile).
+ # Tarayici http://localhost:3000 -> API cagrilari http://localhost:8080'e gider.
+ # (Backend CORS listesinde localhost:3000 bu yuzden ekli.)
+ frontend:
+   build: ./miniscore/frontend
+   ports:
+     - '3000:80'
+   depends_on:
+     - backend
+
 volumes:
  pgdata:

@@ -2,6 +2,7 @@ package com.findeks.miniscore.dto;
 
 import com.findeks.miniscore.entity.Role;
 
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
@@ -19,4 +20,9 @@ public class UpdateRoleRequest {
 
     @NotNull(message = "Rol boş olamaz")
     private Role role;
+
+    // Hassas islem: admin bu isteği yaparken kendi sifresini TEKRAR girer (re-authentication).
+    // Boylece acik kalmis bir oturumu ele geciren biri, sifreyi bilmeden rol yukseltemez.
+    @NotBlank(message = "Şifre boş olamaz")
+    private String password;
 }

@@ -2,6 +2,10 @@ package com.findeks.miniscore.controller;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -11,9 +15,13 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.findeks.miniscore.dto.AuditLogResponse;
+import com.findeks.miniscore.dto.CreditScoreResponse;
+import com.findeks.miniscore.dto.SettingsResponse;
+import com.findeks.miniscore.dto.UpdateEmail2faRequest;
 import com.findeks.miniscore.dto.UpdateRoleRequest;
 import com.findeks.miniscore.dto.UserResponse;
 import com.findeks.miniscore.service.AdminService;
@@ -69,9 +77,43 @@ public class AdminController {
        return ResponseEntity.ok(adminService.getUser(id));
    }
 
+   /**
+    * Bir kullanicinin findeks skor gecmisi (guncel skor = listenin son elemani).
+    * currentUser = bakan admin; denetim kaydinda "kim gordu" olarak yazilir.
+    */
+   @GetMapping("/users/{id}/scores")
+   public ResponseEntity<List<CreditScoreResponse>> getUserScores(
+           @PathVariable Long id,
+           @AuthenticationPrincipal UserDetails currentUser) {
+       return ResponseEntity.ok(adminService.getUserScores(id, currentUser.getUsername()));
+   }
+
+   /**
+    * Denetim kayitlari sayfali doner. @PageableDefault: istemci parametre gondermezse
+    * en yeni 20 kayit (createdAt DESC). Istemci ?page=1&size=50 ile gezinebilir.
+    * Yanit gövdesi: { content: [...], totalPages, totalElements, number, size, ... }.
+    */
+   // ---- Sistem ayarları: e-posta 2FA açık/kapalı ----
+
+   @GetMapping("/settings")
+   public ResponseEntity<SettingsResponse> getSettings() {
+       return ResponseEntity.ok(adminService.getSettings());
+   }
+
+   @PutMapping("/settings/email-2fa")
+   public ResponseEntity<SettingsResponse> setEmailTwoFactor(
+           @Valid @RequestBody UpdateEmail2faRequest request,
+           @AuthenticationPrincipal UserDetails currentUser) {
+       return ResponseEntity.ok(
+               adminService.setEmailTwoFactor(request.getEnabled(), currentUser.getUsername()));
+   }
+
    @GetMapping("/audit-logs")
-   public ResponseEntity<List<AuditLogResponse>> listAuditLogs() {
-       return ResponseEntity.ok(adminService.listAuditLogs());
+   public ResponseEntity<Page<AuditLogResponse>> listAuditLogs(
+           @RequestParam(required = false) String search,
+           @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
+           Pageable pageable) {
+       return ResponseEntity.ok(adminService.listAuditLogs(search, pageable));
    }
 
    /**
@@ -88,6 +130,7 @@ public class AdminController {
            @Valid @RequestBody UpdateRoleRequest request,
            @AuthenticationPrincipal UserDetails currentUser) {
        return ResponseEntity.ok(
-               adminService.updateRole(id, request.getRole(), currentUser.getUsername()));
+               adminService.updateRole(id, request.getRole(),
+                       currentUser.getUsername(), request.getPassword()));
    }
 }

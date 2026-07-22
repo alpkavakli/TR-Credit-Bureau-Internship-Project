@@ -16,8 +16,13 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.findeks.miniscore.dto.ErrorResponse;
 import com.findeks.miniscore.exception.EmailAlreadyExistsException;
+import com.findeks.miniscore.exception.InvalidRefreshTokenException;
+import com.findeks.miniscore.exception.InvalidVerificationCodeException;
 import com.findeks.miniscore.exception.LastAdminException;
 import com.findeks.miniscore.exception.NotFoundException;
+import com.findeks.miniscore.exception.ReauthenticationFailedException;
+import com.findeks.miniscore.exception.ScoreNotAllowedException;
+import com.findeks.miniscore.exception.SelfRoleChangeException;
 
 // @RestControllerAdvice = @ControllerAdvice + @ResponseBody
 // Tum controller'lardan sizan exception'lari yakalar, donusu JSON'a cevirir.
@@ -59,12 +64,57 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse(ex.getMessage()));
     }
 
+    // 409 Conflict - admin kendi rolunu degistiremez (is kurali).
+    @ExceptionHandler(SelfRoleChangeException.class)
+    public ResponseEntity<ErrorResponse> handleSelfRoleChange(SelfRoleChangeException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    // 403 - hassas islem icin sifre tekrar dogrulamasi basarisiz.
+    // 401 DEGIL: 401 istemcide oturum yenileme/kapatma akisini tetikler; oturum gecerli.
+    @ExceptionHandler(ReauthenticationFailedException.class)
+    public ResponseEntity<ErrorResponse> handleReauthFailed(ReauthenticationFailedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
     // 409 Conflict - is kurali geregi imkansiz durum: son admin'in yetkisi alinamaz.
     // EmailAlreadyExists ile ayni mantik: istek bicimsel olarak gecerli (400 degil),
     // cagiranin yetkisi var (403 degil), ama sistemin MEVCUT DURUMU izin vermiyor.
     @ExceptionHandler(LastAdminException.class)
     public ResponseEntity<ErrorResponse> handleLastAdmin(LastAdminException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    // 401 - refresh token yok/gecersiz/suresi dolmus. Kullanici yeniden giris yapmali.
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidRefresh(InvalidRefreshTokenException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    // 403 - kullanicinin findeks raporu olmasi beklenmez (ör. ADMIN kendi skorunu istedi).
+    @ExceptionHandler(ScoreNotAllowedException.class)
+    public ResponseEntity<ErrorResponse> handleScoreNotAllowed(ScoreNotAllowedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    // 400 - e-posta 2FA kodu yanlis/suresi dolmus. 401 DEGIL: verify aninda kullanicinin
+    // henuz token'i yok; 401 istemcide "oturum bitti" akisini tetiklerdi.
+    @ExceptionHandler(InvalidVerificationCodeException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidCode(InvalidVerificationCodeException ex) {
+        return ResponseEntity.badRequest()
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    // 503 - dogrulama e-postasi gonderilemedi (SMTP hatasi / eksik yapilandirma).
+    // EmailService bu tipi kullanici dostu bir mesajla firlatir.
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ErrorResponse> handleMailFailure(IllegalStateException ex) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(new ErrorResponse(ex.getMessage()));
     }
 

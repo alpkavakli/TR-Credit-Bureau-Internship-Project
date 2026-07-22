@@ -84,6 +84,113 @@ body {
   margin: 1rem 0;
 }
 
+.ok-msg {
+  color: var(--link);
+  margin: 1rem 0;
+}
+
+/* ---- Skor geçmişi grafiği (recharts) ---- */
+.chart-box {
+  width: 100%;
+  height: 260px;
+  margin-top: 1.2rem;
+}
+
+/* ---- Sayfalama (denetim kayıtları) ---- */
+.pager {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+/* ---- Sistem ayarı satırı (2FA aç/kapat) ---- */
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1.1rem;
+  border: 1px solid var(--line);
+  margin-top: 0.6rem;
+}
+
+.setting-row p {
+  margin: 0.3rem 0 0;
+}
+
+/* ---- Arama kutusu (admin tabloları) ---- */
+.search-box {
+  margin: 0.6rem 0 0.2rem;
+}
+
+.search-box input {
+  width: 100%;
+  max-width: 340px;
+}
+
+/* ---- Onay penceresi (rol değişimi) ---- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modal {
+  background: #fff;
+  border: 1px solid var(--line);
+  max-width: 440px;
+  width: 100%;
+  padding: 1.4rem 1.5rem;
+}
+
+.modal p {
+  margin: 0 0 0.8rem;
+}
+
+.modal input[type='password'] {
+  width: 100%;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 1.1rem;
+}
+
+button.danger {
+  border-color: #a11;
+  color: #a11;
+}
+
+button.danger:hover:not(:disabled) {
+  background: #fbeaea;
+}
+
+/* ---- Admin: kullanıcı skor paneli ---- */
+.score-panel {
+  margin: 1.4rem 0 2rem;
+  padding: 1rem 1.2rem;
+  border: 1px solid var(--line);
+  background: #fafafa;
+}
+
+.score-panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.score-panel-head h2 {
+  margin: 0;
+}
+
 h2 {
   font-weight: 400;
   font-size: 1.25rem;

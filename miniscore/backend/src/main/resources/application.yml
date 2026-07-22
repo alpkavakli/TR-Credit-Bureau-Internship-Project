@@ -9,19 +9,41 @@ spring:
    show-sql: true          # SQL sorgularını konsolda gösterir (geliştirme amaçlı)
    properties:
      hibernate.format_sql: true
+ # E-posta (Gmail SMTP). Kullanıcı adı/şifre ORTAM DEĞİŞKENİNDEN gelir; git'e girmez.
+ #   MAIL_USERNAME = gonderici gmail adresi
+ #   MAIL_PASSWORD = Google "Uygulama Şifresi" (normal gmail şifresi DEĞİL, 16 haneli app password)
+ # host burada sabit -> JavaMailSender bean'i her zaman oluşur (2FA kapalıyken bile uygulama açılır).
+ mail:
+   host: smtp.gmail.com
+   port: 587
+   username: ${MAIL_USERNAME:}
+   password: ${MAIL_PASSWORD:}
+   properties:
+     mail:
+       smtp:
+         auth: true
+         starttls:
+           enable: true
  
 jwt:
  secret: O2uyxNS3NmHlWqogNA3PNxGd/bIRMZMHaBUcfGYMfGg=
- expiration: 86400000      # 24 saat (milisaniye cinsinden)
+ expiration: 86400000            # access token: 24 saat (milisaniye)
+ refresh-expiration: 604800000   # refresh token: 7 gun (milisaniye)
 
-# AdminSeeder bu degerleri okuyup uygulama acilirken ilk ADMIN'i yaratir.
-# register() herkesi USER yaptigi icin sisteme baska turlu admin girisi yok.
-# Gercek projede bu sifre yml'de DEGIL, ortam degiskeninde tutulur.
 app:
+ # AdminSeeder bu degerleri okuyup uygulama acilirken ilk ADMIN'i yaratir.
+ # register() herkesi USER yaptigi icin sisteme baska turlu admin girisi yok.
+ # Gercek projede bu sifre yml'de DEGIL, ortam degiskeninde tutulur.
  admin:
    email: admin@findeks.com
    password: admin12345
    tc-no: "00000000000"     # tirnak sart: tirnaksiz YAML bunu 0 sayisina cevirirdi
+ # E-posta ile iki adimli dogrulama (2FA). Acik/kapali durumu DB'de tutulur (admin panelinden).
+ verification:
+   from: ${MAIL_USERNAME:noreply@findeks.com}   # gonderen adres
+   code-length: 6
+   expiration-minutes: 10
+   max-attempts: 5
  
 server:
  port: 8080
